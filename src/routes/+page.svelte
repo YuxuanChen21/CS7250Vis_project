@@ -2,12 +2,12 @@
 	import './style.css';
 
 	// data comes from the load function in +page.js
-	export let data;
+	let { data } = $props();
 
 	// default features to visualize
-	let xFeature = 'strikeout';
-	let yFeature = 'hit';
-	let colorFeature = 'all_star';
+	let xFeature = $state('strikeout');
+	let yFeature = $state('hit');
+	let colorFeature = $state('all_star');
 </script>
 
 <div class="container">
