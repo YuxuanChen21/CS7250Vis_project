@@ -1,8 +1,20 @@
 <script>
   import * as d3 from 'd3';
   
-  let { data, features, width = 500, height = 500 } = $props();
+  let { 
+    data, 
+    features, 
+    colorScale,
+    width = 500, 
+    height = 500 
+  } = $props();
   
+  if (!colorScale) {
+    colorScale = d3.scaleOrdinal()
+      .domain(data.map(d => d.ranking))
+      .range(d3.schemeCategory10);
+  }
+
   const margin = 60;
   const radius = Math.min(width, height) / 2 - margin;
   
@@ -12,10 +24,11 @@
     const angleStep = (Math.PI * 2) / features.length;
     
     values.forEach((value, i) => {
+      const safeValue = value === null || value === undefined || isNaN(value) ? 0 : value;
       const angle = i * angleStep - Math.PI / 2;
       points.push([
-        radius * value * Math.cos(angle) + width/2,
-        radius * value * Math.sin(angle) + height/2
+        radius * safeValue * Math.cos(angle) + width/2,
+        radius * safeValue * Math.sin(angle) + height/2
       ]);
     });
     
@@ -50,11 +63,6 @@
     return axes;
   }
   
-
-  const colorScale = d3.scaleOrdinal()
-    .domain(data.map(d => d.ranking))
-    .range(d3.schemeCategory10);
-    
 
   const correlationScale = d3.scaleLinear()
     .domain([-1, 1])
@@ -104,9 +112,11 @@
 
     {#each data as item}
       <polygon
-        points={getPolygonPoints(features.map(f => 
-          correlationScale(item.correlations.find(c => c.feature === f).correlation)
-        ))}
+        points={getPolygonPoints(features.map(f => {
+          const corr = item.correlations.find(c => c.feature === f)?.correlation;
+          return corr === null || corr === undefined || isNaN(corr) ? 
+            0 : correlationScale(corr);
+        }))}
         fill={colorScale(item.ranking)}
         fill-opacity="0.2"
         stroke={colorScale(item.ranking)}

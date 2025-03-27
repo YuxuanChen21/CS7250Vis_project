@@ -2,13 +2,13 @@ import * as d3 from 'd3';
 
 
 function calculateCorrelation(x, y) {
-  const n = x.length;
-  if(n === 0) return 0;
-  
   const validPairs = x.map((xi, i) => [xi, y[i]])
-    .filter(pair => !isNaN(pair[0]) && !isNaN(pair[1]));
+    .filter(pair => pair[0] !== null && pair[1] !== null);
   
-  if(validPairs.length < 2) return 0;
+  if (validPairs.length < 2) {
+    console.warn('Not enough valid data pairs for correlation calculation');
+    return null;
+  }
   
   const xVals = validPairs.map(p => p[0]);
   const yVals = validPairs.map(p => p[1]);
@@ -22,7 +22,12 @@ function calculateCorrelation(x, y) {
     d3.sum(yVals.map(y => Math.pow(y - yMean, 2)))
   );
   
-  return denominator === 0 ? 0 : numerator / denominator;
+  if (denominator === 0) {
+    console.warn('Zero denominator in correlation calculation');
+    return null;
+  }
+  
+  return -(numerator / denominator);
 }
 
 
@@ -88,20 +93,27 @@ export async function load({ fetch }) {
 
     const correlations = rankingColumns.map(ranking => {
       const rankingData = dataset
-        .map(d => d[ranking])
-        .filter(d => d !== 'No Ranking' && !isNaN(d));
+        .map(d => convertToNumeric(d[ranking]))
+        .filter(d => d !== null);
       
       return {
         ranking,
-        correlations: featureColumns.map(feature => ({
-          feature,
-          correlation: calculateCorrelation(
-            rankingData,
-            dataset
-              .filter(d => d[ranking] !== 'No Ranking' && !isNaN(d[ranking]))
-              .map(d => convertToNumeric(d[feature.includes('Niche') ? feature : `Niche ${feature}`]))
-          )
-        }))
+        correlations: featureColumns.map(feature => {
+          const featureData = dataset
+            .filter(d => convertToNumeric(d[ranking]) !== null)
+            .map(d => {
+              const featureName = feature.includes('Niche') ? feature : `Niche ${feature}`;
+              return convertToNumeric(d[featureName]);
+            })
+            .filter(d => d !== null);
+          
+          const correlation = calculateCorrelation(rankingData, featureData);
+          
+          return {
+            feature,
+            correlation: correlation ?? 0
+          };
+        })
       };
     });
 
