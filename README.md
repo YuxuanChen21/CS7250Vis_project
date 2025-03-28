@@ -8,3 +8,11 @@ This repository is for teaching how to build an interactive visualization using 
 npm install
 npm run dev
 ```
+
+add some more text
+
+add some more text
+
+add some more text
+
+add some more text
