@@ -112,19 +112,19 @@ export async function load({ fetch }) {
     const text = await res.text();
     const dataset = d3.csvParse(text);
 
-    console.log("Raw data sample:", dataset.slice(0, 5));
-    console.log("Sample data for Acceptance Rate:", dataset.slice(0, 5).map(d => ({
-      original: d['Acceptance Rate'],
-      converted: convertToNumeric(d['Acceptance Rate'])
-    })));
-    console.log("Sample data for Average SAT:", dataset.slice(0, 5).map(d => ({
-      original: d['Average SAT'],
-      converted: convertToNumeric(d['Average SAT'])
-    })));
-    console.log("Sample data for Nobel Prizes:", dataset.slice(0, 5).map(d => ({
-      original: d['Nobel Prizes'],
-      converted: convertToNumeric(d['Nobel Prizes'])
-    })));
+    // console.log("Raw data sample:", dataset.slice(0, 5));
+    // console.log("Sample data for Acceptance Rate:", dataset.slice(0, 5).map(d => ({
+    //   original: d['Acceptance Rate'],
+    //   converted: convertToNumeric(d['Acceptance Rate'])
+    // })));
+    // console.log("Sample data for Average SAT:", dataset.slice(0, 5).map(d => ({
+    //   original: d['Average SAT'],
+    //   converted: convertToNumeric(d['Average SAT'])
+    // })));
+    // console.log("Sample data for Nobel Prizes:", dataset.slice(0, 5).map(d => ({
+    //   original: d['Nobel Prizes'],
+    //   converted: convertToNumeric(d['Nobel Prizes'])
+    // })));
 
     const rankingColumns = [
       '2023 US News Ranking',
@@ -141,7 +141,7 @@ export async function load({ fetch }) {
         .map(d => convertToNumeric(d[ranking]))
         .filter(d => d !== null);
 
-      console.log(`Ranking data for ${ranking}:`, rankingData.slice(0, 5));
+      // console.log(`Ranking data for ${ranking}:`, rankingData.slice(0, 5));
 
       return {
         ranking,
@@ -156,12 +156,12 @@ export async function load({ fetch }) {
 
               const value = d[featureName];
               const converted = convertToNumeric(value, isGrade);
-              console.log(`Converting ${feature}:`, {
-                original: value,
-                isGrade,
-                converted,
-                featureName
-              });
+              // console.log(`Converting ${feature}:`, {
+              //   original: value,
+              //   isGrade,
+              //   converted,
+              //   featureName
+              // });
               return converted;
             })
             .filter(d => d !== null);
@@ -173,7 +173,7 @@ export async function load({ fetch }) {
             correlation = -correlation;
           }
 
-          console.log(`Correlation for ${ranking} vs ${feature}:`, correlation);
+          // console.log(`Correlation for ${ranking} vs ${feature}:`, correlation);
 
           return {
             feature,
