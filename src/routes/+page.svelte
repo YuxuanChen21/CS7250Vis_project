@@ -4,7 +4,7 @@
   
   export let data;
   
-  // 定义排名列
+  // Define ranking columns
   const rankingAttributes = [
     '2023 US News Ranking',
     '2022 QS World Ranking',
@@ -13,7 +13,7 @@
     '2023 CSRankings'
   ];
   
-  // 定义其他属性列
+  // Define other attribute columns
   const otherAttributes = [
     'Acceptance Rate',
     'Average SAT',
@@ -34,30 +34,30 @@
     'Niche Value Grade'
   ];
   
-  // 初始化选择的属性（X轴为排名，Y轴为其他属性）
+  // Initialize selected attributes (X-axis for ranking, Y-axis for other attributes)
   let xAttribute = '2022 QS World Ranking';
   let yAttribute = 'Undergraduate Population';
   
-  // 用于存储处理后的数据
+  // Store processed data
   let processedData = [];
   let groupedData = [];
   
-  // 当选择或数据变化时处理数据
+  // Process data when selection or data changes
   $: {
     if (data?.dataset && xAttribute && yAttribute) {
-      console.log('处理数据中:', {
-        x轴: xAttribute,
-        y轴: yAttribute
+      console.log('Processing data:', {
+        'X-axis': xAttribute,
+        'Y-axis': yAttribute
       });
       
-      // 处理所有有效的数据点
+      // Process all valid data points
       const validData = data.dataset.map(d => {
-        // 处理 X 轴数据（排名）
+        // Process X-axis data (ranking)
         let xValue = d[xAttribute];
-        // 处理 Y 轴数据（属性）
+        // Process Y-axis data (attribute)
         let yValue = d[yAttribute];
         
-        // 转换 X 轴值（排名）
+        // Convert X-axis value (ranking)
         if (typeof xValue === 'string') {
           if (xValue === 'No Ranking') {
             xValue = null;
@@ -66,7 +66,7 @@
           }
         }
         
-        // 转换 Y 轴值（属性）
+        // Convert Y-axis value (attribute)
         if (typeof yValue === 'string') {
           if (yValue.endsWith('%')) {
             yValue = parseFloat(yValue) / 100;
@@ -97,22 +97,22 @@
       );
 
       if (validData.length === 0) {
-        console.log('没有有效的数据点');
+        console.log('No valid data points');
         processedData = [];
         groupedData = [];
       } else {
-        // 使用原始数据，不进行标准化
+        // Use original data, no normalization
         processedData = validData.map(d => ({
           'University Name': d.name,
           [xAttribute]: d.x,
           [yAttribute]: d.y
         }));
         
-        // 对数据按排名顺序分组并聚合
-        // 首先按排名排序
+        // Group and aggregate data by ranking order
+        // First sort by ranking
         const sortedData = [...validData].sort((a, b) => a.x - b.x);
         
-        // 按排名顺序每5所学校分为一组
+        // Group every 5 schools by ranking order
         const groupedSchools = [];
         for (let i = 0; i < sortedData.length; i += 5) {
           const group = sortedData.slice(i, i + 5);
@@ -125,14 +125,14 @@
           }
         }
         
-        // 计算每组的平均值
+        // Calculate average for each group
         groupedData = groupedSchools.map(g => {
           const avgRank = d3.mean(g.schools, d => d.x);
           const avgValue = d3.mean(g.schools, d => d.y);
           const schoolNames = g.schools.map(d => d.name).join(", ");
           
           return {
-            'University Name': `第${g.startRank}-${g.endRank}名学校 (${g.schools.length}所)`,
+            'University Name': `Rank ${g.startRank}-${g.endRank} schools (${g.schools.length})`,
             schoolsList: schoolNames,
             [xAttribute]: avgRank,
             [yAttribute]: avgValue,
@@ -140,10 +140,10 @@
           };
         });
 
-        console.log('分组后的数据:', {
-          原始数据点: processedData.length,
-          分组数据点: groupedData.length,
-          示例分组: groupedData[0]
+        console.log('Grouped data:', {
+          'Original data points': processedData.length,
+          'Grouped data points': groupedData.length,
+          'Sample group': groupedData[0]
         });
       }
     } else {
@@ -152,17 +152,17 @@
     }
   }
   
-  // 是否显示分组数据
+  // Whether to display grouped data
   let showGroupedData = true;
 </script>
 
 <div class="container">
   <div class="scatter-plot-section">
-    <h3>大学排名与属性散点图 (分组聚合)</h3>
+    <h3>University Rankings and Attributes Scatter Plot (Grouped)</h3>
     <div class="controls">
       <div class="select-group">
         <label>
-          选择X轴(横轴)排名：
+          Select X-axis (horizontal) ranking:
           <select bind:value={xAttribute}>
             {#each rankingAttributes as attribute}
               <option value={attribute}>{attribute}</option>
@@ -173,7 +173,7 @@
       
       <div class="select-group">
         <label>
-          选择Y轴(纵轴)属性：
+          Select Y-axis (vertical) attribute:
           <select bind:value={yAttribute}>
             {#each otherAttributes as attribute}
               <option value={attribute}>{attribute}</option>
@@ -185,16 +185,16 @@
       <div class="select-group">
         <label>
           <input type="checkbox" bind:checked={showGroupedData}>
-          显示分组数据 (每5个排名分组)
+          Show grouped data (group every 5 ranks)
         </label>
       </div>
     </div>
     
     <div>
-      <p>原始数据点数量: {processedData.length}</p>
-      <p>分组后数据点数量: {groupedData.length}</p>
-      <p>X轴 (排名): {xAttribute}</p>
-      <p>Y轴 (属性): {yAttribute}</p>
+      <p>Original data points: {processedData.length}</p>
+      <p>Grouped data points: {groupedData.length}</p>
+      <p>X-axis (Ranking): {xAttribute}</p>
+      <p>Y-axis (Attribute): {yAttribute}</p>
     </div>
     
     {#if (showGroupedData ? groupedData : processedData).length > 0}
@@ -207,7 +207,7 @@
         isGrouped={showGroupedData}
       />
     {:else}
-      <p>没有可用的数据点</p>
+      <p>No available data points</p>
     {/if}
   </div>
 </div>
