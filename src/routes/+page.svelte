@@ -1,123 +1,215 @@
 <script>
-  import './style.css';
-  import RadarChart from '$lib/RadarChart.svelte';
+  import ScatterPlot from '$lib/ScatterPlot.svelte';
   import * as d3 from 'd3';
   
-  let { data } = $props();
+  export let data;
   
-  const colorScale = d3.scaleOrdinal()
-    .domain(data.rankingColumns || [])
-    .range(d3.schemeCategory10);
+  // 定义排名列
+  const rankingAttributes = [
+    '2023 US News Ranking',
+    '2022 QS World Ranking',
+    '2023 THE World Ranking',
+    '2022 RUR World Reputation Ranking',
+    '2023 CSRankings'
+  ];
+  
+  // 定义其他属性列
+  const otherAttributes = [
+    'Acceptance Rate',
+    'Average SAT',
+    'Nobel Prizes',
+    'Undergraduate Population',
+    'Niche Academic Grade',
+    'Niche Athletic Grade',
+    'Niche Campus Grade',
+    'Niche Campus Food Grade',
+    'Niche Diversity Grade',
+    'Niche Dorms Grade',
+    'Niche Location Grade',
+    'Niche Overall Grade',
+    'Niche Party Scene Grade',
+    'Niche Professors Grade',
+    'Niche Safety Grade',
+    'Niche Student Life Grade',
+    'Niche Value Grade'
+  ];
+  
+  // 初始化选择的属性（X轴为排名，Y轴为其他属性）
+  let xAttribute = '2022 QS World Ranking';
+  let yAttribute = 'Undergraduate Population';
+  
+  // 用于存储处理后的数据
+  let processedData = [];
+  let groupedData = [];
+  
+  // 当选择或数据变化时处理数据
+  $: {
+    if (data?.dataset && xAttribute && yAttribute) {
+      console.log('处理数据中:', {
+        x轴: xAttribute,
+        y轴: yAttribute
+      });
+      
+      // 处理所有有效的数据点
+      const validData = data.dataset.map(d => {
+        // 处理 X 轴数据（排名）
+        let xValue = d[xAttribute];
+        // 处理 Y 轴数据（属性）
+        let yValue = d[yAttribute];
+        
+        // 转换 X 轴值（排名）
+        if (typeof xValue === 'string') {
+          if (xValue === 'No Ranking') {
+            xValue = null;
+          } else {
+            xValue = parseFloat(xValue);
+          }
+        }
+        
+        // 转换 Y 轴值（属性）
+        if (typeof yValue === 'string') {
+          if (yValue.endsWith('%')) {
+            yValue = parseFloat(yValue) / 100;
+          } else if (/^[A-F][+-]?$/.test(yValue)) {
+            const gradeMap = {
+              'A+': 4.3, 'A': 4.0, 'A-': 3.7,
+              'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+              'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+              'D+': 1.3, 'D': 1.0, 'D-': 0.7,
+              'F': 0.0
+            };
+            yValue = gradeMap[yValue];
+          } else {
+            yValue = parseFloat(yValue);
+          }
+        }
 
-  let selectedRankings = $state([data.rankingColumns?.[0] || '']);
-  let selectedFeatures = $state(data.numericColumns?.slice(0, 6) || []);
+        return {
+          name: d['University Name'],
+          x: xValue,
+          y: yValue
+        };
+      }).filter(d => 
+        d.x !== null && 
+        d.y !== null && 
+        !isNaN(d.x) && 
+        !isNaN(d.y)
+      );
+
+      if (validData.length === 0) {
+        console.log('没有有效的数据点');
+        processedData = [];
+        groupedData = [];
+      } else {
+        // 使用原始数据，不进行标准化
+        processedData = validData.map(d => ({
+          'University Name': d.name,
+          [xAttribute]: d.x,
+          [yAttribute]: d.y
+        }));
+        
+        // 对数据按排名顺序分组并聚合
+        // 首先按排名排序
+        const sortedData = [...validData].sort((a, b) => a.x - b.x);
+        
+        // 按排名顺序每5所学校分为一组
+        const groupedSchools = [];
+        for (let i = 0; i < sortedData.length; i += 5) {
+          const group = sortedData.slice(i, i + 5);
+          if (group.length > 0) {
+            groupedSchools.push({
+              schools: group,
+              startRank: i + 1,
+              endRank: i + group.length
+            });
+          }
+        }
+        
+        // 计算每组的平均值
+        groupedData = groupedSchools.map(g => {
+          const avgRank = d3.mean(g.schools, d => d.x);
+          const avgValue = d3.mean(g.schools, d => d.y);
+          const schoolNames = g.schools.map(d => d.name).join(", ");
+          
+          return {
+            'University Name': `第${g.startRank}-${g.endRank}名学校 (${g.schools.length}所)`,
+            schoolsList: schoolNames,
+            [xAttribute]: avgRank,
+            [yAttribute]: avgValue,
+            count: g.schools.length
+          };
+        });
+
+        console.log('分组后的数据:', {
+          原始数据点: processedData.length,
+          分组数据点: groupedData.length,
+          示例分组: groupedData[0]
+        });
+      }
+    } else {
+      processedData = [];
+      groupedData = [];
+    }
+  }
   
-  let filteredData = $derived(
-    data.correlations?.filter(d => selectedRankings.includes(d.ranking)) || []
-  );
+  // 是否显示分组数据
+  let showGroupedData = true;
 </script>
 
 <div class="container">
-  <div class="controls">
-    <div class="ranking-select">
-      <h3>Please select the ranking systems</h3>
-      {#each data.rankingColumns || [] as ranking}
+  <div class="scatter-plot-section">
+    <h3>大学排名与属性散点图 (分组聚合)</h3>
+    <div class="controls">
+      <div class="select-group">
         <label>
-          <input
-            type="checkbox"
-            value={ranking}
-            checked={selectedRankings.includes(ranking)}
-            on:change={(e) => {
-              if (e.target.checked) {
-                selectedRankings = [...selectedRankings, ranking];
-              } else {
-                selectedRankings = selectedRankings.filter(r => r !== ranking);
-              }
-            }}
-          />
-          {ranking}
+          选择X轴(横轴)排名：
+          <select bind:value={xAttribute}>
+            {#each rankingAttributes as attribute}
+              <option value={attribute}>{attribute}</option>
+            {/each}
+          </select>
         </label>
-      {/each}
+      </div>
+      
+      <div class="select-group">
+        <label>
+          选择Y轴(纵轴)属性：
+          <select bind:value={yAttribute}>
+            {#each otherAttributes as attribute}
+              <option value={attribute}>{attribute}</option>
+            {/each}
+          </select>
+        </label>
+      </div>
+      
+      <div class="select-group">
+        <label>
+          <input type="checkbox" bind:checked={showGroupedData}>
+          显示分组数据 (每5个排名分组)
+        </label>
+      </div>
     </div>
     
-    <div class="feature-select">
-      <h3>Please select the features (max 6)</h3>
-      {#each data.numericColumns || [] as feature}
-        <label>
-          <input
-            type="checkbox"
-            value={feature}
-            checked={selectedFeatures.includes(feature)}
-            disabled={!selectedFeatures.includes(feature) && selectedFeatures.length >= 6}
-            on:change={(e) => {
-              if (e.target.checked) {
-                selectedFeatures = [...selectedFeatures, feature];
-              } else {
-                selectedFeatures = selectedFeatures.filter(f => f !== feature);
-              }
-            }}
-          />
-          {feature}
-        </label>
-      {/each}
+    <div>
+      <p>原始数据点数量: {processedData.length}</p>
+      <p>分组后数据点数量: {groupedData.length}</p>
+      <p>X轴 (排名): {xAttribute}</p>
+      <p>Y轴 (属性): {yAttribute}</p>
     </div>
-  </div>
-
-  {#if filteredData.length > 0 && selectedFeatures.length > 0}
-    <!-- 雷达图 -->
-    <div class="chart">
-      <RadarChart
-        data={filteredData}
-        features={selectedFeatures}
-        {colorScale}
+    
+    {#if (showGroupedData ? groupedData : processedData).length > 0}
+      <ScatterPlot
+        data={showGroupedData ? groupedData : processedData}
+        ranking={yAttribute}
+        xAttribute={xAttribute}
         width={800}
-        height={600}
+        height={500}
+        isGrouped={showGroupedData}
       />
-    </div>
-
-    <!-- 相关系数表格 -->
-    <div class="correlation-table">
-      <h3>Correlation Matrix</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Ranking System</th>
-            {#each selectedFeatures as feature}
-              <th>{feature}</th>
-            {/each}
-          </tr>
-        </thead>
-        <tbody>
-          {#each filteredData as item}
-            <tr>
-              <td class="ranking-name" style="color: {colorScale(item.ranking)}">
-                {item.ranking}
-              </td>
-              {#each selectedFeatures as feature}
-                {@const correlation = item.correlations.find(c => c.feature === feature)?.correlation}
-                <td 
-                  class="correlation-cell" 
-                  style="background: linear-gradient(to right, 
-                    {correlation !== null && !isNaN(correlation) ? 
-                      (correlation > 0 ? 'rgba(0, 158, 115, 0.1)' : 'rgba(213, 94, 0, 0.1)') : 'transparent'} 
-                      {Math.abs(correlation || 0) * 100}%, 
-                    transparent {Math.abs(correlation || 0) * 100}%)"
-                >
-                  {#if correlation === null || isNaN(correlation)}
-                    <span class="insufficient-data">Insufficient data</span>
-                  {:else}
-                    <span class="correlation-value">
-                      {correlation.toFixed(3)}
-                    </span>
-                  {/if}
-                </td>
-              {/each}
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
+    {:else}
+      <p>没有可用的数据点</p>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -126,98 +218,26 @@
     font-family: system-ui, sans-serif;
   }
   
+  .scatter-plot-section {
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
   .controls {
     display: flex;
+    flex-wrap: wrap;
     gap: 40px;
     margin-bottom: 20px;
   }
   
-  .ranking-select,
-  .feature-select {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+  .select-group {
+    margin: 1rem 0;
   }
   
-  .chart {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-
-  .correlation-table {
-    margin: 2rem 0;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    background: white;
-  }
-
-  .correlation-table h3 {
-    margin-bottom: 1rem;
-    color: #333;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    border: 1px solid #ddd;
+  select {
+    margin-left: 0.5rem;
+    padding: 0.25rem;
     border-radius: 4px;
-    overflow: hidden;
-  }
-
-  th, td {
-    padding: 12px 16px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-    border-right: 1px solid #ddd;
-  }
-
-  th {
-    background-color: #f5f5f5;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.9rem;
-    color: #333;
-  }
-
-  td:last-child, th:last-child {
-    border-right: none;
-  }
-
-  tr:last-child td {
-    border-bottom: none;
-  }
-
-  .ranking-name {
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .correlation-cell {
-    position: relative;
-    text-align: right;
-    font-family: monospace;
-  }
-
-  .correlation-value {
-    position: relative;
-    z-index: 1;
-  }
-
-  .insufficient-data {
-    color: #999;
-    font-style: italic;
-    font-size: 0.9em;
-  }
-
-  tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-
-  tbody tr:hover {
-    background-color: #f0f0f0;
   }
 </style> 
