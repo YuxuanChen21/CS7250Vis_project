@@ -5,6 +5,7 @@ This repository builds an interactive visualization using Svelte and D3.
 ## mian branch -- the spider graph and the tabular plot
 
 ```
+git checkout main
 npm install
 npm run dev
 ```
