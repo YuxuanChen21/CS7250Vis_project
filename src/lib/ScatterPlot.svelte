@@ -8,6 +8,7 @@
   export let height = 500;
   export let isGrouped = false;
   export let showTrendline = true;
+  export let regressionMethod = 'leastSquares';
   
   // 设置图表边距
   const margin = { top: 20, right: 30, bottom: 40, left: 50 };
@@ -84,18 +85,73 @@
   $: regressionLine = (() => {
     if (!chartData.points.length || !showTrendline) return null;
     
-    const n = chartData.points.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    const points = chartData.points;
+    const n = points.length;
+    let slope, intercept;
     
-    chartData.points.forEach(point => {
-      sumX += point.x;
-      sumY += point.y;
-      sumXY += point.x * point.y;
-      sumX2 += point.x * point.x;
-    });
+    if (regressionMethod === 'theilSen') {
+      // Theil-Sen估计器（中位数斜率）
+      const slopes = [];
+      
+      // 计算所有点对之间的斜率
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const dx = points[j].x - points[i].x;
+          if (dx !== 0) { // 避免除以零
+            slopes.push((points[j].y - points[i].y) / dx);
+          }
+        }
+      }
+      
+      // 取斜率的中位数
+      slopes.sort((a, b) => a - b);
+      if (slopes.length % 2 === 0) {
+        slope = (slopes[slopes.length / 2 - 1] + slopes[slopes.length / 2]) / 2;
+      } else {
+        slope = slopes[Math.floor(slopes.length / 2)];
+      }
+      
+      // 计算所有可能的截距，然后取中位数
+      const intercepts = points.map(p => p.y - slope * p.x);
+      intercepts.sort((a, b) => a - b);
+      if (intercepts.length % 2 === 0) {
+        intercept = (intercepts[intercepts.length / 2 - 1] + intercepts[intercepts.length / 2]) / 2;
+      } else {
+        intercept = intercepts[Math.floor(intercepts.length / 2)];
+      }
+    } else {
+      // 标准最小二乘法
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      
+      points.forEach(point => {
+        sumX += point.x;
+        sumY += point.y;
+        sumXY += point.x * point.y;
+        sumX2 += point.x * point.x;
+      });
+      
+      slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      intercept = (sumY - slope * sumX) / n;
+    }
     
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const intercept = (sumY - slope * sumX) / n;
+    // 计算相关系数 (只对最小二乘法有效)
+    let correlationText = '';
+    if (regressionMethod === 'leastSquares') {
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+      
+      points.forEach(point => {
+        sumX += point.x;
+        sumY += point.y;
+        sumXY += point.x * point.y;
+        sumX2 += point.x * point.x;
+        sumY2 += point.y * point.y;
+      });
+      
+      const numerator = n * sumXY - sumX * sumY;
+      const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+      const r = denominator !== 0 ? numerator / denominator : 0;
+      correlationText = `, r = ${r.toFixed(2)}`;
+    }
     
     // 创建线的起点和终点
     return {
@@ -103,18 +159,29 @@
       y1: slope * chartData.xDomain[0] + intercept,
       x2: chartData.xDomain[1],
       y2: slope * chartData.xDomain[1] + intercept,
-      equation: `y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}`
+      equation: `y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}${correlationText}`,
+      method: regressionMethod === 'theilSen' ? 'Theil-Sen' : 'Least Squares'
     };
   })();
 </script>
 
 <div class="scatter-plot">
-  <!-- 添加复选框控制区 -->
+  <!-- 控制区域 -->
   <div class="controls">
     <label class="control-item">
       <input type="checkbox" bind:checked={showTrendline}>
       Show Trendline
     </label>
+    
+    <!-- 回归方法选择 -->
+    {#if showTrendline}
+      <div class="control-item">
+        <select bind:value={regressionMethod}>
+          <option value="leastSquares">Least Squares</option>
+          <option value="theilSen">Theil-Sen (Robust)</option>
+        </select>
+      </div>
+    {/if}
   </div>
   
   <svg {width} {height}>
@@ -180,20 +247,20 @@
           y1={yScale(regressionLine.y1)}
           x2={xScale(regressionLine.x2)} 
           y2={yScale(regressionLine.y2)}
-          stroke="red"
+          stroke={regressionMethod === 'theilSen' ? 'green' : 'red'}
           stroke-width="2"
           stroke-dasharray="5,5"
         />
         
-        <!-- 显示回归方程 -->
+        <!-- 显示回归方程和方法 -->
         <text 
           x={innerWidth - 10} 
           y="20" 
           text-anchor="end"
           font-size="12px"
-          fill="red"
+          fill={regressionMethod === 'theilSen' ? 'green' : 'red'}
         >
-          {regressionLine.equation}
+          {regressionLine.method}: {regressionLine.equation}
         </text>
       {/if}
       
@@ -280,5 +347,12 @@
   
   circle:hover {
     r: 8;
+  }
+  
+  select {
+    padding: 2px 5px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+    font-size: 12px;
   }
 </style> 
