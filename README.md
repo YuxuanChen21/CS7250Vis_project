@@ -1,18 +1,18 @@
-=======
+# CS7250-Data-Visualization-Final-Project
 
-# Svelte + D3
+This repository builds an interactive visualization using Svelte and D3.
 
-This repository is for teaching how to build an interactive visualization using Svelte and D3. See the final branch for the complete app.
+## mian branch -- the spider graph and the tabular plot
 
 ```
 npm install
 npm run dev
 ```
 
-add some more text
+## the `scatterplot` branch -- the scatter plot with the trend line
 
-add some more text
-
-add some more text
-
-add some more text
+```
+git checkout scatterplot
+npm install
+npm run dev
+```
