@@ -7,6 +7,7 @@
   export let width = 800;
   export let height = 500;
   export let isGrouped = false;
+  export let showTrendline = true;
   
   // 设置图表边距
   const margin = { top: 20, right: 30, bottom: 40, left: 50 };
@@ -78,9 +79,44 @@
     if (!isGrouped) return 6;
     return Math.max(6, Math.min(15, Math.sqrt(count) * 3));
   }
+  
+  // 计算线性回归线
+  $: regressionLine = (() => {
+    if (!chartData.points.length || !showTrendline) return null;
+    
+    const n = chartData.points.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    
+    chartData.points.forEach(point => {
+      sumX += point.x;
+      sumY += point.y;
+      sumXY += point.x * point.y;
+      sumX2 += point.x * point.x;
+    });
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    // 创建线的起点和终点
+    return {
+      x1: chartData.xDomain[0],
+      y1: slope * chartData.xDomain[0] + intercept,
+      x2: chartData.xDomain[1],
+      y2: slope * chartData.xDomain[1] + intercept,
+      equation: `y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}`
+    };
+  })();
 </script>
 
 <div class="scatter-plot">
+  <!-- 添加复选框控制区 -->
+  <div class="controls">
+    <label class="control-item">
+      <input type="checkbox" bind:checked={showTrendline}>
+      Show Trendline
+    </label>
+  </div>
+  
   <svg {width} {height}>
     <g transform="translate({margin.left}, {margin.top})">
       <!-- X轴 -->
@@ -137,6 +173,30 @@
         />
       {/each}
       
+      <!-- 线性回归线 -->
+      {#if regressionLine && showTrendline}
+        <line 
+          x1={xScale(regressionLine.x1)} 
+          y1={yScale(regressionLine.y1)}
+          x2={xScale(regressionLine.x2)} 
+          y2={yScale(regressionLine.y2)}
+          stroke="red"
+          stroke-width="2"
+          stroke-dasharray="5,5"
+        />
+        
+        <!-- 显示回归方程 -->
+        <text 
+          x={innerWidth - 10} 
+          y="20" 
+          text-anchor="end"
+          font-size="12px"
+          fill="red"
+        >
+          {regressionLine.equation}
+        </text>
+      {/if}
+      
       <!-- 悬停提示 -->
       {#if hoveredPoint}
         <g transform="translate({xScale(hoveredPoint.x)}, {yScale(hoveredPoint.y) - 15})">
@@ -189,6 +249,20 @@
     background-color: #f9f9f9;
     border-radius: 5px;
     padding: 10px;
+  }
+  
+  .controls {
+    margin-bottom: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .control-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 14px;
   }
   
   text {
