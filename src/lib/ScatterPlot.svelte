@@ -159,7 +159,7 @@
       y1: slope * chartData.xDomain[0] + intercept,
       x2: chartData.xDomain[1],
       y2: slope * chartData.xDomain[1] + intercept,
-      equation: `y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}${correlationText}`,
+      equation: `y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}${correlationText}`,
       method: regressionMethod === 'theilSen' ? 'Theil-Sen' : 'Least Squares'
     };
   })();
