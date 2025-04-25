@@ -10,12 +10,12 @@
   export let showTrendline = true;
   export let regressionMethod = 'leastSquares';
   
-  // 设置图表边距
+
   const margin = { top: 20, right: 30, bottom: 40, left: 50 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   
-  // 使用响应式声明代替 $derived
+
   let chartData;
   $: {
     if (!data || !xAttribute || !ranking) {
@@ -25,7 +25,6 @@
         yDomain: [0, 1]
       };
     } else {
-      // 提取所有点
       const points = data.map(d => ({
         name: d['University Name'],
         x: d[xAttribute],
@@ -34,7 +33,6 @@
         count: d.count || 1
       }));
       
-      // 计算 x 和 y 的域
       const xValues = points.map(d => d.x);
       const yValues = points.map(d => d.y);
       
@@ -48,7 +46,6 @@
         d3.max(yValues) * 1.1
       ];
       
-      // 处理特殊情况：如果最小值是0或接近0
       if (xDomain[0] === 0 || Math.abs(xDomain[0]) < 0.001) {
         xDomain[0] = 0;
         xDomain[1] = d3.max(xValues) * 1.2;
@@ -63,7 +60,7 @@
     }
   }
   
-  // 设置比例尺
+
   $: xScale = d3.scaleLinear()
     .domain(chartData.xDomain)
     .range([0, innerWidth]);
@@ -72,16 +69,16 @@
     .domain(chartData.yDomain)
     .range([innerHeight, 0]);
     
-  // 处理悬停状态
+
   let hoveredPoint = null;
   
-  // 计算圆点半径
+
   function getRadius(count) {
     if (!isGrouped) return 6;
     return Math.max(6, Math.min(15, Math.sqrt(count) * 3));
   }
   
-  // 计算线性回归线
+
   $: regressionLine = (() => {
     if (!chartData.points.length || !showTrendline) return null;
     
@@ -90,20 +87,20 @@
     let slope, intercept;
     
     if (regressionMethod === 'theilSen') {
-      // Theil-Sen估计器（中位数斜率）
+ 
       const slopes = [];
       
-      // 计算所有点对之间的斜率
+
       for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
           const dx = points[j].x - points[i].x;
-          if (dx !== 0) { // 避免除以零
+          if (dx !== 0) { 
             slopes.push((points[j].y - points[i].y) / dx);
           }
         }
       }
       
-      // 取斜率的中位数
+
       slopes.sort((a, b) => a - b);
       if (slopes.length % 2 === 0) {
         slope = (slopes[slopes.length / 2 - 1] + slopes[slopes.length / 2]) / 2;
@@ -111,7 +108,7 @@
         slope = slopes[Math.floor(slopes.length / 2)];
       }
       
-      // 计算所有可能的截距，然后取中位数
+
       const intercepts = points.map(p => p.y - slope * p.x);
       intercepts.sort((a, b) => a - b);
       if (intercepts.length % 2 === 0) {
@@ -120,7 +117,7 @@
         intercept = intercepts[Math.floor(intercepts.length / 2)];
       }
     } else {
-      // 标准最小二乘法
+
       let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
       
       points.forEach(point => {
@@ -134,7 +131,7 @@
       intercept = (sumY - slope * sumX) / n;
     }
     
-    // 计算相关系数 (只对最小二乘法有效)
+
     let correlationText = '';
     if (regressionMethod === 'leastSquares') {
       let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
@@ -153,7 +150,7 @@
       correlationText = `, r = ${r.toFixed(2)}`;
     }
     
-    // 创建线的起点和终点
+
     return {
       x1: chartData.xDomain[0],
       y1: slope * chartData.xDomain[0] + intercept,
@@ -166,14 +163,14 @@
 </script>
 
 <div class="scatter-plot">
-  <!-- 控制区域 -->
+
   <div class="controls">
     <label class="control-item">
       <input type="checkbox" bind:checked={showTrendline}>
       Show Trendline
     </label>
     
-    <!-- 回归方法选择 -->
+
     {#if showTrendline}
       <div class="control-item">
         <select bind:value={regressionMethod}>
@@ -186,7 +183,6 @@
   
   <svg {width} {height}>
     <g transform="translate({margin.left}, {margin.top})">
-      <!-- X轴 -->
       <g transform="translate(0, {innerHeight})">
         <line x1="0" y1="0" x2="{innerWidth}" y2="0" stroke="black" />
         {#each xScale.ticks(5) as tick}
@@ -205,7 +201,6 @@
         </text>
       </g>
       
-      <!-- Y轴 -->
       <g>
         <line x1="0" y1="0" x2="0" y2="{innerHeight}" stroke="black" />
         {#each yScale.ticks(5) as tick}
@@ -225,7 +220,7 @@
         </text>
       </g>
       
-      <!-- 数据点 -->
+
       {#each chartData.points as point}
         <circle
           cx="{xScale(point.x)}"
@@ -240,7 +235,7 @@
         />
       {/each}
       
-      <!-- 线性回归线 -->
+
       {#if regressionLine && showTrendline}
         <line 
           x1={xScale(regressionLine.x1)} 
@@ -252,7 +247,7 @@
           stroke-dasharray="5,5"
         />
         
-        <!-- 显示回归方程和方法 -->
+
         <text 
           x={innerWidth - 10} 
           y="20" 
@@ -264,7 +259,7 @@
         </text>
       {/if}
       
-      <!-- 悬停提示 -->
+
       {#if hoveredPoint}
         <g transform="translate({xScale(hoveredPoint.x)}, {yScale(hoveredPoint.y) - 15})">
           <rect
