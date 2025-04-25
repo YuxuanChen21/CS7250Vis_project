@@ -4,13 +4,13 @@ export async function load({ fetch }) {
     try {
         const res = await fetch('/data.csv');
         if (!res.ok) {
-            throw new Error(`获取数据失败: ${res.status} ${res.statusText}`);
+            throw new Error(`Fail to load data: ${res.status} ${res.statusText}`);
         }
         const text = await res.text();
         const dataset = d3.csvParse(text);
 
-        // 打印原始数据样本
-        console.log("原始数据示例:", {
+
+        console.log("Original data:", {
             第一行: dataset[0],
             列: Object.keys(dataset[0])
         });
@@ -19,7 +19,7 @@ export async function load({ fetch }) {
             dataset
         };
     } catch (error) {
-        console.error('加载数据时出错:', error);
+        console.error('Fail when load data:', error);
         return {
             error: error.message,
             dataset: []
