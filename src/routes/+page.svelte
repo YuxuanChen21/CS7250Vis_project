@@ -4,7 +4,7 @@
   
   export let data;
   
-  // Define ranking columns
+
   const rankingAttributes = [
     '2023 US News Ranking',
     '2022 QS World Ranking',
@@ -13,7 +13,7 @@
     '2023 CSRankings'
   ];
   
-  // Define other attribute columns
+
   const otherAttributes = [
     'Acceptance Rate',
     'Average SAT',
@@ -34,15 +34,15 @@
     'Niche Value Grade'
   ];
   
-  // Initialize selected attributes (X-axis for ranking, Y-axis for other attributes)
+ 
   let xAttribute = '2022 QS World Ranking';
   let yAttribute = 'Undergraduate Population';
   
-  // Store processed data
+
   let processedData = [];
   let groupedData = [];
   
-  // Process data when selection or data changes
+  
   $: {
     if (data?.dataset && xAttribute && yAttribute) {
       console.log('Processing data:', {
@@ -66,7 +66,7 @@
           }
         }
         
-        // Convert Y-axis value (attribute)
+
         if (typeof yValue === 'string') {
           if (yValue.endsWith('%')) {
             yValue = parseFloat(yValue) / 100;
@@ -101,18 +101,17 @@
         processedData = [];
         groupedData = [];
       } else {
-        // Use original data, no normalization
+        
         processedData = validData.map(d => ({
           'University Name': d.name,
           [xAttribute]: d.x,
           [yAttribute]: d.y
         }));
         
-        // Group and aggregate data by ranking order
-        // First sort by ranking
+        
         const sortedData = [...validData].sort((a, b) => a.x - b.x);
         
-        // Group every 5 schools by ranking order
+
         const groupedSchools = [];
         for (let i = 0; i < sortedData.length; i += 5) {
           const group = sortedData.slice(i, i + 5);
@@ -125,7 +124,7 @@
           }
         }
         
-        // Calculate average for each group
+
         groupedData = groupedSchools.map(g => {
           const avgRank = d3.mean(g.schools, d => d.x);
           const avgValue = d3.mean(g.schools, d => d.y);
@@ -152,7 +151,7 @@
     }
   }
   
-  // Whether to display grouped data
+
   let showGroupedData = true;
 </script>
 
