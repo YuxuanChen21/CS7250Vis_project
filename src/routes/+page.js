@@ -11,8 +11,8 @@ export async function load({ fetch }) {
 
 
         console.log("Original data:", {
-            第一行: dataset[0],
-            列: Object.keys(dataset[0])
+            First row: dataset[0],
+            colomn: Object.keys(dataset[0])
         });
 
         return {
