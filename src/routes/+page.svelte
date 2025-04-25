@@ -64,7 +64,6 @@
   </div>
 
   {#if filteredData.length > 0 && selectedFeatures.length > 0}
-    <!-- 雷达图 -->
     <div class="chart">
       <RadarChart
         data={filteredData}
@@ -75,7 +74,6 @@
       />
     </div>
 
-    <!-- 相关系数表格 -->
     <div class="correlation-table">
       <h3>Correlation Matrix</h3>
       <table>
