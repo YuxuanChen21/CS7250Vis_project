@@ -10,10 +10,10 @@ export async function load({ fetch }) {
         const dataset = d3.csvParse(text);
 
 
-        console.log("Original data:", {
-            First row: dataset[0],
-            colomn: Object.keys(dataset[0])
-        });
+        // console.log("Original data:", {
+        //     First row: dataset[0],
+        //     colomn: Object.keys(dataset[0])
+        // });
 
         return {
             dataset
